@@ -54,7 +54,7 @@
             cursor: pointer;
             font-size: 16px;
         }
-        #game-over {
+                    #game-over {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -64,6 +64,10 @@
             color: #ff0000;
             text-align: center;
             display: none;
+            background-color: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 10;
         }
     </style>
 </head>
@@ -210,6 +214,7 @@
                 finalScoreDisplay.textContent = 'Final Score: ' + score;
                 gameOverDisplay.style.display = 'block';
                 startButton.style.display = 'block';
+                startButton.style.zIndex = '20'; // Ensure button is above other elements
                 startButton.textContent = 'Play Again';
             }
             
