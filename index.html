@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Catch Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            width: 400px;
+            height: 300px;
+            background-color: #f0f8ff;
+            position: relative;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        #player {
+            width: 50px;
+            height: 20px;
+            background-color: #0066cc;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 5px;
+        }
+        .item {
+            width: 20px;
+            height: 20px;
+            background-color: #ff6600;
+            position: absolute;
+            border-radius: 50%;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        #start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff0000;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="player"></div>
+        <div id="score">Score: 0</div>
+        <button id="start-button">Start Game</button>
+        <div id="game-over">
+            Game Over!<br>
+            <span id="final-score"></span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const gameContainer = document.getElementById('game-container');
+            const player = document.getElementById('player');
+            const scoreDisplay = document.getElementById('score');
+            const startButton = document.getElementById('start-button');
+            const gameOverDisplay = document.getElementById('game-over');
+            const finalScoreDisplay = document.getElementById('final-score');
+            
+            let score = 0;
+            let gameRunning = false;
+            let items = [];
+            let playerPosition = 175;
+            const containerWidth = 400;
+            const playerWidth = 50;
+            const playerSpeed = 5;
+            let leftPressed = false;
+            let rightPressed = false;
+            let animationFrameId;
+            let lastItemTime = 0;
+            
+            // Start the game
+            startButton.addEventListener('click', function() {
+                startGame();
+            });
+            
+            function startGame() {
+                score = 0;
+                scoreDisplay.textContent = 'Score: 0';
+                gameOverDisplay.style.display = 'none';
+                startButton.style.display = 'none';
+                gameRunning = true;
+                
+                // Clear any existing items
+                items.forEach(item => {
+                    if (item.element && item.element.parentNode) {
+                        item.element.parentNode.removeChild(item.element);
+                    }
+                });
+                items = [];
+                
+                // Set up keyboard controls
+                window.addEventListener('keydown', handleKeyDown);
+                window.addEventListener('keyup', handleKeyUp);
+                
+                // Set up touch controls for mobile
+                gameContainer.addEventListener('touchmove', handleTouchMove);
+                
+                // Start game loop
+                lastItemTime = Date.now();
+                gameLoop();
+            }
+            
+            function gameLoop() {
+                if (!gameRunning) return;
+                
+                // Move player based on key presses
+                if (leftPressed && playerPosition > 0) {
+                    playerPosition -= playerSpeed;
+                }
+                if (rightPressed && playerPosition < containerWidth - playerWidth) {
+                    playerPosition += playerSpeed;
+                }
+                player.style.left = playerPosition + 'px';
+                
+                // Create new items occasionally
+                const currentTime = Date.now();
+                if (currentTime - lastItemTime > 1000) {
+                    createItem();
+                    lastItemTime = currentTime;
+                }
+                
+                // Move existing items and check for collisions
+                moveItems();
+                
+                // Continue the game loop
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+            
+            function createItem() {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item';
+                const xPosition = Math.random() * (containerWidth - 20); // 20 is item width
+                itemElement.style.left = xPosition + 'px';
+                itemElement.style.top = '0px';
+                gameContainer.appendChild(itemElement);
+                
+                items.push({
+                    element: itemElement,
+                    x: xPosition,
+                    y: 0,
+                    speed: 2 + Math.random() * 2 // Random speed between 2-4
+                });
+            }
+            
+            function moveItems() {
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const item = items[i];
+                    item.y += item.speed;
+                    item.element.style.top = item.y + 'px';
+                    
+                    // Check if item is out of bounds
+                    if (item.y > 300) { // 300 is container height
+                        gameContainer.removeChild(item.element);
+                        items.splice(i, 1);
+                        endGame();
+                        return;
+                    }
+                    
+                    // Check for collision with player
+                    if (item.y > 270 && // 270 is where player's top edge is
+                        item.x + 20 > playerPosition &&
+                        item.x < playerPosition + playerWidth) {
+                        // Collision detected!
+                        gameContainer.removeChild(item.element);
+                        items.splice(i, 1);
+                        score++;
+                        scoreDisplay.textContent = 'Score: ' + score;
+                    }
+                }
+            }
+            
+            function endGame() {
+                gameRunning = false;
+                window.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('keyup', handleKeyUp);
+                gameContainer.removeEventListener('touchmove', handleTouchMove);
+                cancelAnimationFrame(animationFrameId);
+                
+                finalScoreDisplay.textContent = 'Final Score: ' + score;
+                gameOverDisplay.style.display = 'block';
+                startButton.style.display = 'block';
+                startButton.textContent = 'Play Again';
+            }
+            
+            function handleKeyDown(e) {
+                if (e.key === 'ArrowLeft') {
+                    leftPressed = true;
+                }
+                if (e.key === 'ArrowRight') {
+                    rightPressed = true;
+                }
+            }
+            
+            function handleKeyUp(e) {
+                if (e.key === 'ArrowLeft') {
+                    leftPressed = false;
+                }
+                if (e.key === 'ArrowRight') {
+                    rightPressed = false;
+                }
+            }
+            
+            function handleTouchMove(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const gameRect = gameContainer.getBoundingClientRect();
+                playerPosition = touch.clientX - gameRect.left - (playerWidth / 2);
+                
+                // Keep player within bounds
+                if (playerPosition < 0) playerPosition = 0;
+                if (playerPosition > containerWidth - playerWidth) {
+                    playerPosition = containerWidth - playerWidth;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
